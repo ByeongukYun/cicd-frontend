@@ -54,5 +54,6 @@ jobs:
             sudo rm -rf /var/www/html/*
             sudo mkdir -p /var/www/html
             sudo mv /home/ubuntu/client/build/* /var/www/html
-            sudo systemctl restart nginx
+            sudo apt install nginx
+            sudo systemctl start nginx
             sudo rm -rf /home/ubuntu/client
