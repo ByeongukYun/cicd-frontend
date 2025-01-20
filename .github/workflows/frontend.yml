@@ -1,0 +1,57 @@
+name: React ci/cd
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  react-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository resource
+        uses: actions/checkout@v2
+
+      - name: create .env variable
+        run: |
+          echo "${{ secrets.CLIENT_ENV }}" > .env
+          pwd
+          ls -al
+
+      - name: install NodeJS
+        uses: actions/setup-node@v2
+        with:
+          node-version: "22"
+
+      - name: install libraries
+        run: npm install
+
+      - name: build
+        run: |
+          npm run build
+          ls ./build
+
+      - name: upload files on EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          source: ./build/*
+          target: /home/ubuntu/client
+
+      - name: connect EC2 by SSH, restart server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script_stop: true
+          script: |
+            sudo rm -rf /var/www/html/*
+            sudo mv /home/ubuntu/client/build/* /var/www/html
+            sudo systemctl restart nginx
+            sudo rm -rf /home/ubuntu/client
